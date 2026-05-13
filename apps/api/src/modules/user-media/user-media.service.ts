@@ -1,28 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Upload } from '@aws-sdk/lib-storage';
+import type { Readable } from 'node:stream';
 import { newId, BusinessRuleError } from '@yorecebimde/shared';
 import { env } from '@yorecebimde/config/api';
 import { S3_TOKEN, S3_BUCKETS, type S3Buckets } from '../../infrastructure/minio.module.js';
+import { buildMediaUrl } from '../media/media.url.js';
 import type { S3Client } from '@aws-sdk/client-s3';
 
 const ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB review/Q&A için (ürün'den daha küçük)
-const PRESIGN_TTL_SEC = 60 * 10;
 
 export type UserMediaContext = 'review' | 'question_attachment' | 'profile_avatar';
 
-export type PresignResult = {
-  uploadUrl: string;
+export type UploadResult = {
   storageKey: string;
   publicUrl: string;
-  expiresInSec: number;
-  maxFileSizeBytes: number;
 };
 
 /**
- * Müşteri-uploaded media için presigned PUT URL. Review, Q&A attachment,
- * (gelecek) profile avatar gibi case'ler.
+ * Müşteri-uploaded media için direct multipart upload. Review, Q&A attachment,
+ * profile avatar gibi case'ler. Browser → API → MinIO (internal network).
  *
  * Ürün görseli pipeline'ından farkı:
  *  - DB row YOK (uploader frontend'i URL'i doğrudan parent kayıta yazar)
@@ -36,12 +32,13 @@ export class UserMediaService {
     @Inject(S3_BUCKETS) private readonly buckets: S3Buckets,
   ) {}
 
-  async presignUpload(input: {
+  async uploadMedia(input: {
     userId: string;
     context: UserMediaContext;
     contentType: string;
     fileName: string;
-  }): Promise<PresignResult> {
+    stream: Readable;
+  }): Promise<UploadResult> {
     if (!(ALLOWED_CONTENT_TYPES as readonly string[]).includes(input.contentType)) {
       throw new BusinessRuleError('Desteklenmeyen dosya türü', {
         contentType: input.contentType,
@@ -51,29 +48,33 @@ export class UserMediaService {
 
     const id = newId();
     const ext = extFromContentType(input.contentType);
-    // Path: users/<userId>/<context>/<id>.<ext>
     const storageKey = `users/${input.userId}/${input.context}/${id}.${ext}`;
-    const publicUrl = `${env.MINIO_PUBLIC_URL}/${this.buckets.userMedia}/${storageKey}`;
 
-    const command = new PutObjectCommand({
-      Bucket: this.buckets.userMedia,
-      Key: storageKey,
-      ContentType: input.contentType,
-      // ClamAV scan tag (Faz 8 — webhook listener temizleyecek/dosyayı silecek)
-      Metadata: {
-        'uploaded-by': input.userId,
-        'upload-context': input.context,
-        'scan-status': 'pending',
+    const upload = new Upload({
+      client: this.s3,
+      params: {
+        Bucket: this.buckets.userMedia,
+        Key: storageKey,
+        Body: input.stream,
+        ContentType: input.contentType,
+        Metadata: {
+          'uploaded-by': input.userId,
+          'upload-context': input.context,
+          'scan-status': 'pending',
+        },
       },
     });
-    const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: PRESIGN_TTL_SEC });
+    try {
+      await upload.done();
+    } catch (err) {
+      throw new BusinessRuleError('Dosya yüklenirken hata oluştu', {
+        cause: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     return {
-      uploadUrl,
       storageKey,
-      publicUrl,
-      expiresInSec: PRESIGN_TTL_SEC,
-      maxFileSizeBytes: MAX_FILE_SIZE_BYTES,
+      publicUrl: buildMediaUrl(env.BETTER_AUTH_URL, this.buckets.userMedia, storageKey),
     };
   }
 }

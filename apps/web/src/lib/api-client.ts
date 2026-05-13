@@ -69,14 +69,24 @@ export const apiClient = {
     request<T>(path, { method: 'DELETE', ...(opts.headers ? { headers: opts.headers } : {}) }),
 };
 
-/** Browser → MinIO presigned PUT. Direkt fetch (S3 SDK gerekmiyor). */
-export async function uploadToPresignedUrl(url: string, file: File): Promise<void> {
-  const res = await fetch(url, {
-    method: 'PUT',
-    body: file,
-    headers: { 'Content-Type': file.type },
+/**
+ * Multipart upload to an API endpoint. Browser → API → MinIO over the internal
+ * Docker network (replaces the presigned-URL flow which needed a public
+ * storage subdomain).
+ */
+export async function uploadFile<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+    headers: { 'Accept-Language': 'tr' },
   });
-  if (!res.ok) {
-    throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+  const json = (await res.json()) as ApiResponse<T>;
+  if (!res.ok || 'error' in json) {
+    const err = 'error' in json ? json.error : { code: 'UNKNOWN', message: res.statusText };
+    throw new ClientApiError(res.status, err);
   }
+  return json.data;
 }
