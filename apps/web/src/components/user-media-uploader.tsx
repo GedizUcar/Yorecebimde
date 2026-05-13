@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { apiClient, uploadToPresignedUrl, ClientApiError } from '@/lib/api-client';
+import { ClientApiError } from '@/lib/api-client';
 
-type Presigned = {
-  uploadUrl: string;
+type UploadResult = {
   storageKey: string;
   publicUrl: string;
-  maxFileSizeBytes: number;
 };
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 type Context = 'review' | 'question_attachment' | 'profile_avatar';
 
@@ -48,13 +48,22 @@ export function UserMediaUploader({
     }
     setBusy(true);
     try {
-      const pre = await apiClient.post<Presigned>('/v1/user-media/presign', {
-        context,
-        contentType: file.type,
-        fileName: file.name,
+      const form = new FormData();
+      form.append('context', context);
+      form.append('file', file);
+      const res = await fetch(`${BASE_URL}/v1/user-media/upload`, {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+        headers: { 'Accept-Language': 'tr' },
       });
-      await uploadToPresignedUrl(pre.uploadUrl, file);
-      onUploaded(pre.publicUrl);
+      const json = await res.json();
+      if (!res.ok || 'error' in json) {
+        const errBody = 'error' in json ? json.error : { code: 'UNKNOWN', message: res.statusText };
+        throw new ClientApiError(res.status, errBody);
+      }
+      const result = json.data as UploadResult;
+      onUploaded(result.publicUrl);
     } catch (e) {
       setErr(e instanceof ClientApiError ? e.message : 'Yükleme başarısız');
     } finally {

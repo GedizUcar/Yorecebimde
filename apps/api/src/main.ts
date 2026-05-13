@@ -4,6 +4,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import helmet, { type FastifyHelmetOptions } from '@fastify/helmet';
 import cookie, { type FastifyCookieOptions } from '@fastify/cookie';
 import cors, { type FastifyCorsOptions } from '@fastify/cors';
+import multipart, { type FastifyMultipartOptions } from '@fastify/multipart';
 import type { FastifyPluginAsync, FastifyPluginCallback } from 'fastify';
 
 import { env } from '@yorecebimde/config/api';
@@ -82,6 +83,14 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'Accept-Language'],
+  });
+
+  logger.info('boot[5b] register multipart');
+  await app.register(multipart as FastifyPluginCallback<FastifyMultipartOptions>, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10 MB, must match MAX_FILE_SIZE_BYTES in uploads.service
+      files: 1,
+    },
   });
 
   logger.info('boot[6] setGlobalPrefix');

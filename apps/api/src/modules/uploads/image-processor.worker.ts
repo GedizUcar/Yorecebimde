@@ -8,6 +8,7 @@ import { S3_TOKEN, S3_BUCKETS, type S3Buckets } from '../../infrastructure/minio
 import { QueueRegistry, QUEUE_NAMES } from '../../infrastructure/queue.module.js';
 import { UploadsRepository } from './uploads.repository.js';
 import { SearchService } from '../search/search.service.js';
+import { buildMediaUrl } from '../media/media.url.js';
 
 type ImageJobPayload = {
   imageId: string;
@@ -87,8 +88,8 @@ export class ImageProcessorWorker implements OnModuleInit, OnModuleDestroy {
       this.uploadObject(thumbKey, thumbBuf, 'image/webp'),
     ]);
 
-    const webpUrl = `${env.MINIO_PUBLIC_URL}/${this.buckets.products}/${fullKey}`;
-    const thumbnailUrl = `${env.MINIO_PUBLIC_URL}/${this.buckets.products}/${thumbKey}`;
+    const webpUrl = buildMediaUrl(env.BETTER_AUTH_URL, this.buckets.products, fullKey);
+    const thumbnailUrl = buildMediaUrl(env.BETTER_AUTH_URL, this.buckets.products, thumbKey);
 
     await this.repo.updateProcessing(imageId, 'ready', {
       webpUrl,

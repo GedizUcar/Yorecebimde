@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import type { ListingProduct } from '@/lib/api-types';
 import { WishlistButton } from '@/components/wishlist-button';

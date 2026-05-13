@@ -17,10 +17,12 @@ ENV PATH=$PNPM_HOME:$PATH
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/
-COPY packages/config/package.json ./packages/config/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/db/package.json ./packages/db/
+COPY packages/ai-bot/package.json ./packages/ai-bot/
 COPY packages/auth/package.json ./packages/auth/
+COPY packages/config/package.json ./packages/config/
+COPY packages/db/package.json ./packages/db/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
 RUN --mount=type=cache,id=pnpm,target=/usr/local/share/pnpm/store \
     pnpm install --frozen-lockfile
