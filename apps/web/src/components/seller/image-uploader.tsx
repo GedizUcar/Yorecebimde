@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { apiClient, ClientApiError, uploadToPresignedUrl } from '@/lib/api-client';
+import { apiClient, ClientApiError, uploadFile } from '@/lib/api-client';
 
 type ImageItem = {
   imageId: string;
@@ -11,12 +11,10 @@ type ImageItem = {
   error?: string;
 };
 
-type PresignResponse = {
-  uploadUrl: string;
+type UploadResponse = {
   imageId: string;
   storageKey: string;
-  expiresInSec: number;
-  maxFileSizeBytes: number;
+  status: 'processing';
 };
 
 const MAX_IMAGES = 3;
@@ -54,24 +52,15 @@ export function ImageUploader({ productId }: { productId: string }) {
     addItem({ imageId: placeholderId, status: 'uploading', fileName: file.name, preview });
 
     try {
-      const presign = await apiClient.post<PresignResponse>(
-        `/v1/uploads/products/${productId}/presign`,
-        { contentType: file.type, fileName: file.name },
+      const result = await uploadFile<UploadResponse>(
+        `/v1/uploads/products/${productId}/image`,
+        file,
       );
-
-      updateItem(placeholderId, { imageId: presign.imageId });
-      placeholderId = presign.imageId;
-
-      await uploadToPresignedUrl(presign.uploadUrl, file);
-
-      updateItem(presign.imageId, { status: 'processing' });
-
-      await apiClient.post(
-        `/v1/uploads/products/${productId}/images/${presign.imageId}/complete`,
-      );
+      updateItem(placeholderId, { imageId: result.imageId, status: 'processing' });
+      placeholderId = result.imageId;
 
       // Naive polling — production'da SSE/WS olabilir
-      void pollStatus(presign.imageId);
+      void pollStatus(result.imageId);
     } catch (e) {
       const msg = e instanceof ClientApiError ? e.message : 'Yükleme başarısız';
       updateItem(placeholderId, { status: 'failed', error: msg });

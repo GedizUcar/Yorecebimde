@@ -44,6 +44,7 @@ import { PushModule } from './modules/push/push.module.js';
 import { ContractsModule } from './modules/contracts/contracts.module.js';
 import { EtbisModule } from './modules/etbis/etbis.module.js';
 import { UserMediaModule } from './modules/user-media/user-media.module.js';
+import { MediaModule } from './modules/media/media.module.js';
 import { DatabaseModule } from './infrastructure/database.module.js';
 import { MinioModule } from './infrastructure/minio.module.js';
 import { QueueModule } from './infrastructure/queue.module.js';
@@ -99,6 +100,7 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor.js
     ContractsModule,
     EtbisModule,
     UserMediaModule,
+    MediaModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ZodValidationPipe },
