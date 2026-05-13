@@ -24,6 +24,12 @@ export const apiEnvSchema = baseEnvSchema.extend({
 
   BETTER_AUTH_SECRET: z.string().min(32, 'Min 32 char (run `openssl rand -base64 32`)'),
   BETTER_AUTH_URL: z.string().url(),
+  // Comma-separated extra origins for CORS allowlist (e.g. panel subdomain).
+  // BETTER_AUTH_URL is always included.
+  CORS_EXTRA_ORIGINS: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : [])),
   SESSION_COOKIE_NAME: z.string().default('yorecebimde_session'),
   SESSION_MAX_AGE_DAYS: stringToInt.default(30),
 
@@ -91,6 +97,7 @@ export const apiEnvSchema = baseEnvSchema.extend({
 export const webEnvSchema = baseEnvSchema.extend({
   NEXT_PUBLIC_API_URL: z.string().url(),
   NEXT_PUBLIC_WEB_URL: z.string().url(),
+  NEXT_PUBLIC_PANEL_URL: z.string().url().optional(),
   NEXT_PUBLIC_CDN_URL: z.string().url(),
   NEXT_PUBLIC_DEFAULT_LOCALE: z.enum(['tr', 'en']).default('tr'),
   NEXT_PUBLIC_SUPPORTED_LOCALES: z.string().default('tr,en'),

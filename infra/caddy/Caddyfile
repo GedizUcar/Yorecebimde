@@ -35,6 +35,23 @@ api.yorecebimde-staging.gkteches.com {
 	}
 }
 
+# Panel (seller + admin) — staging. Ayni Next.js container'a gider;
+# middleware host'a bakip /seller veya /admin'e yonlendirir.
+# DNS prerequisite: panel.yorecebimde-staging.gkteches.com → ayni IP.
+panel.yorecebimde-staging.gkteches.com {
+	reverse_proxy web:3000
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=(self)"
+		-Server
+	}
+}
+
 # ----- Production (Faz 7'de aktive) -----
 
 # yorecebimde.com, www.yorecebimde.com {
