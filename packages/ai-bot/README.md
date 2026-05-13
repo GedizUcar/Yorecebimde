@@ -64,7 +64,7 @@ In-memory request scope only. Sayfa kapanınca / oturum biterse → silinir. Pri
 ```ts
 import { Bot } from '@yorecebimde/ai-bot';
 
-const bot = new Bot({ apiKey, model: 'gemini-flash-lite-3.1' });
+const bot = new Bot({ apiKey, model: 'gemini-2.5-flash' });
 
 const stream = await bot.chat({
   userMessage,
