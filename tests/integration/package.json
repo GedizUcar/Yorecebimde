@@ -1,0 +1,20 @@
+{
+  "name": "@yorecebimde/integration-tests",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@testcontainers/postgresql": "^10.13.0",
+    "drizzle-orm": "catalog:",
+    "postgres": "^3.4.5",
+    "testcontainers": "^10.13.0",
+    "typescript": "catalog:",
+    "vitest": "^2.1.0",
+    "@yorecebimde/db": "workspace:*"
+  }
+}

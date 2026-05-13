@@ -1,0 +1,81 @@
+groups:
+  - name: yorecebimde-api
+    interval: 30s
+    rules:
+      - alert: APIDown
+        expr: up{job="yorecebimde-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API down: {{ $labels.instance }}'
+          description: '2 dakikadır scrape başarısız.'
+
+      - alert: APIHighErrorRate
+        expr: |
+          (
+            sum(rate(yorecebimde_http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(yorecebimde_http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API error rate > 5%'
+          description: 'Son 5 dakikadır 5xx oranı yüksek.'
+
+      - alert: APIP95High
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, route) (rate(yorecebimde_http_request_duration_seconds_bucket[5m]))
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'API P95 > 1s on {{ $labels.route }}'
+
+  - name: host
+    interval: 30s
+    rules:
+      - alert: HostDiskAlmostFull
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Disk usage > 80% on /'
+
+      - alert: HostMemoryPressure
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Memory available < 10%'
+
+  - name: business
+    interval: 1m
+    rules:
+      - alert: NoOrdersInAnHour
+        expr: increase(yorecebimde_orders_created_total[1h]) == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Son 1 saatte sipariş alınmadı'
+          description: 'Conversion problemi veya outage olabilir.'
+
+  - name: backup
+    interval: 5m
+    rules:
+      - alert: BackupOldOrMissing
+        expr: |
+          time() - yorecebimde_backup_last_success_timestamp > 86400 * 2
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Backup 48 saattir başarılı değil'

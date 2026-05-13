@@ -1,0 +1,61 @@
+{
+  "name": "yorecebimde",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Yörecebimde — Yöresel gıda ürünleri için multi-tenant marketplace platformu (self-hosted)",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+    "dev:infra": "docker compose -f infra/docker/compose.dev.yml up -d",
+    "dev:infra:down": "docker compose -f infra/docker/compose.dev.yml down",
+    "dev:infra:logs": "docker compose -f infra/docker/compose.dev.yml logs -f",
+    "db:generate": "pnpm --filter @yorecebimde/db generate",
+    "db:migrate": "pnpm --filter @yorecebimde/db migrate",
+    "db:seed": "pnpm --filter @yorecebimde/db seed",
+    "db:studio": "pnpm --filter @yorecebimde/db studio",
+    "db:rls": "pnpm --filter @yorecebimde/db exec tsx src/scripts/apply-rls.ts",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0",
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@types/node": "^22.10.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{js,mjs,cjs}": [
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "overrides": {
+      "drizzle-orm": "^0.45.2",
+      "@types/react": "19.0.7",
+      "@types/react-dom": "19.0.3",
+      "fastify": "^4.29.1"
+    }
+  }
+}

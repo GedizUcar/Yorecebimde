@@ -1,0 +1,47 @@
+name: A11y (axe-core)
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'packages/ui/**'
+
+jobs:
+  axe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Web
+        run: pnpm -F @yorecebimde/web build
+
+      - name: Start Web
+        run: pnpm -F @yorecebimde/web start &
+        env:
+          PORT: 3000
+
+      - name: Wait for web
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Install axe + playwright
+        run: npm i --no-save playwright @axe-core/playwright
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run axe scan
+        run: node .github/scripts/axe-scan.mjs

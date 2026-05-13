@@ -1,0 +1,74 @@
+name: Sentry Release + Source Maps
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'packages/**'
+
+jobs:
+  sentry:
+    runs-on: ubuntu-latest
+    if: ${{ vars.SENTRY_ENABLED == 'true' }}
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME}-${GITHUB_SHA::8}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build API
+        run: pnpm -F @yorecebimde/api build
+        env:
+          GIT_SHA: ${{ steps.version.outputs.version }}
+
+      - name: Build Web (source maps)
+        run: pnpm -F @yorecebimde/web build
+        env:
+          GIT_SHA: ${{ steps.version.outputs.version }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN_WEB }}
+
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }} # self-host URL (örn. https://sentry.gkteches.com)
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_WEB }}
+        with:
+          version: ${{ steps.version.outputs.version }}
+          environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+          sourcemaps: ./apps/web/.next/static
+          url_prefix: '~/_next/static'
+
+      - name: Create Sentry release (API)
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT_API }}
+        with:
+          version: ${{ steps.version.outputs.version }}
+          environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+          sourcemaps: ./apps/api/dist
+          url_prefix: 'app:///dist'

@@ -1,0 +1,51 @@
+name: Mobile EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        type: choice
+        required: true
+        default: 'preview'
+        options: [development, preview, production]
+      platform:
+        description: 'Platform'
+        type: choice
+        required: true
+        default: 'all'
+        options: [ios, android, all]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ vars.EAS_BUILD_ENABLED == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install EAS CLI
+        run: npm i -g eas-cli@latest
+
+      - name: Build
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build \
+            --profile=${{ github.event.inputs.profile }} \
+            --platform=${{ github.event.inputs.platform }} \
+            --non-interactive \
+            --no-wait

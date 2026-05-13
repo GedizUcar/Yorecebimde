@@ -1,0 +1,58 @@
+name: Mobile OTA Update
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-ota.yml'
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Update message (changelog)'
+        type: string
+        required: true
+        default: 'Bug fixes and minor improvements'
+
+jobs:
+  ota:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ vars.EAS_UPDATES_ENABLED == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install EAS CLI
+        run: npm i -g eas-cli@latest
+
+      - name: Determine channel
+        id: channel
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "channel=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=staging" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish update
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          MESSAGE="${{ github.event.inputs.message || github.event.head_commit.message }}"
+          eas update \
+            --channel=${{ steps.channel.outputs.channel }} \
+            --message="$MESSAGE" \
+            --non-interactive

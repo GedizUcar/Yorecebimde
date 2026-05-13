@@ -1,0 +1,50 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'packages/ui/**'
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Web
+        run: pnpm -F @yorecebimde/web build
+
+      - name: Start Web
+        run: pnpm -F @yorecebimde/web start &
+        env:
+          PORT: 3000
+
+      - name: Wait for web
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Lighthouse audit
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            http://localhost:3000
+            http://localhost:3000/giris
+            http://localhost:3000/kayit
+            http://localhost:3000/arama
+          budgetPath: .github/lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

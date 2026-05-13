@@ -1,0 +1,41 @@
+{
+  "name": "@yorecebimde/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint --max-warnings=0",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@yorecebimde/auth": "workspace:*",
+    "@yorecebimde/config": "workspace:*",
+    "@yorecebimde/shared": "workspace:*",
+    "@yorecebimde/ui": "workspace:*",
+    "@tanstack/react-query": "^5.59.0",
+    "next": "^15.1.0",
+    "next-intl": "^3.26.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.0",
+    "@hookform/resolvers": "^3.9.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.16.0",
+    "eslint-config-next": "^15.1.0",
+    "@yorecebimde/eslint-config": "workspace:*",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "catalog:",
+    "vitest": "^2.1.0"
+  }
+}

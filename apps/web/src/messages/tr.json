@@ -1,0 +1,38 @@
+{
+  "common": {
+    "appName": "Yörecebimde",
+    "tagline": "Yöresel gıdanın yeni adresi",
+    "search": "Ara",
+    "login": "Giriş Yap",
+    "register": "Üye Ol",
+    "logout": "Çıkış Yap",
+    "cart": "Sepet",
+    "wishlist": "Beğendiklerim",
+    "orders": "Siparişlerim",
+    "account": "Hesabım"
+  },
+  "home": {
+    "heroTitle": "Üreticiden Sofrana",
+    "heroSubtitle": "Yöresel gıda ürünlerini doğrudan üreticisinden alın.",
+    "ctaShop": "Alışverişe Başla",
+    "ctaSeller": "Satıcı Ol"
+  },
+  "auth": {
+    "loginTitle": "Hesabına Giriş Yap",
+    "registerTitle": "Hesap Oluştur",
+    "email": "E-posta",
+    "password": "Şifre",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "phone": "Telefon",
+    "submit": "Devam Et",
+    "kvkkAccept": "KVKK Aydınlatma Metni'ni okudum, kabul ediyorum.",
+    "marketingOptIn": "Kampanya ve fırsatlardan haberdar olmak istiyorum.",
+    "haveAccount": "Hesabın var mı?",
+    "noAccount": "Hesabın yok mu?"
+  },
+  "errors": {
+    "generic": "Beklenmedik bir hata oluştu.",
+    "validation": "Lütfen alanları kontrol edin."
+  }
+}

@@ -1,0 +1,61 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build artifacts
+**/dist
+**/.next
+**/build
+**/.turbo
+**/out
+**/*.tsbuildinfo
+
+# Tests / coverage
+**/coverage
+**/.nyc_output
+**/playwright-report
+**/test-results
+
+# Logs
+**/logs
+**/*.log
+
+# Env (build sırasında env_file ile inject edilir)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+
+# Git / repo
+.git
+.gitignore
+.github
+
+# Editor / OS
+.idea
+.vscode
+.DS_Store
+**/.claude
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# Mobile (Expo)
+apps/mobile
+
+# Drizzle artifacts (migrations dahil — build için sadece schema lazım)
+**/drizzle
+
+# Secrets / certs
+*.pem
+*.key
+*.crt
+secrets/
+
+# Temporary
+tmp
+temp
+*.tmp

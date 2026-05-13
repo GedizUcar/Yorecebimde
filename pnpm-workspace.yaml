@@ -1,0 +1,24 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tests/*"
+
+# Catalog: monorepo-wide version pinning for shared deps.
+# Lockfile değişikliklerini azaltır, sürüm tutarlılığını garanti eder.
+catalog:
+  # Core
+  typescript: ^5.7.0
+  "@types/node": ^22.10.0
+
+  # Validation
+  zod: ^3.23.0
+
+  # Date utilities
+  "date-fns": ^4.1.0
+
+  # Logging
+  pino: ^9.5.0
+  "pino-pretty": ^11.3.0
+
+  # DB — Better-Auth peer dep gereği 0.45+
+  "drizzle-orm": ^0.45.2

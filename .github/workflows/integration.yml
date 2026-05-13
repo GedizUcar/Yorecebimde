@@ -1,0 +1,33 @@
+name: Integration (Testcontainers)
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests (Testcontainers + Postgres)
+        run: pnpm -F @yorecebimde/integration-tests test
+        env:
+          NODE_ENV: test
+          # Testcontainers Docker socket'i kullanır — ubuntu-latest'te varsayılan
+          TESTCONTAINERS_RYUK_DISABLED: 'true'

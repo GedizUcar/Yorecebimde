@@ -1,0 +1,38 @@
+{
+  "common": {
+    "appName": "Yörecebimde",
+    "tagline": "The new home of regional food",
+    "search": "Search",
+    "login": "Log In",
+    "register": "Sign Up",
+    "logout": "Log Out",
+    "cart": "Cart",
+    "wishlist": "Wishlist",
+    "orders": "Orders",
+    "account": "Account"
+  },
+  "home": {
+    "heroTitle": "From Producer to Your Table",
+    "heroSubtitle": "Regional Turkish food, directly from the maker.",
+    "ctaShop": "Start Shopping",
+    "ctaSeller": "Become a Seller"
+  },
+  "auth": {
+    "loginTitle": "Log in to your account",
+    "registerTitle": "Create an account",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "submit": "Continue",
+    "kvkkAccept": "I have read and accept the KVKK Privacy Notice.",
+    "marketingOptIn": "I would like to receive marketing emails.",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?"
+  },
+  "errors": {
+    "generic": "An unexpected error occurred.",
+    "validation": "Please check the fields."
+  }
+}

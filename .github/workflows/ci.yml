@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: yorecebimde
+          POSTGRES_PASSWORD: yorecebimde
+          POSTGRES_DB: yorecebimde_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U yorecebimde"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://yorecebimde:yorecebimde@localhost:5432/yorecebimde_test
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: ci-test-secret-thirty-two-chars-long-enough
+      BETTER_AUTH_URL: http://localhost:3000
+      JWT_ACCESS_SECRET: ci-test-jwt-access-secret-thirty-two-chars-long-x
+      JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret-thirty-two-chars-long-x
+      ENCRYPTION_KEY: aGVsbG8td29ybGQtdGVzdC1rZXktMzItYnl0ZS1leGFtcGxl
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_PUBLIC_URL: http://localhost:9000
+      MEILISEARCH_HOST: http://localhost:7700
+      MEILISEARCH_API_KEY: masterKey
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Generate migrations
+        run: pnpm db:generate
+
+      - name: Run migrations
+        run: pnpm db:migrate
+
+      - name: Test
+        run: pnpm test
