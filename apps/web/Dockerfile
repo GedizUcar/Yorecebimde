@@ -9,10 +9,12 @@ ENV PATH=$PNPM_HOME:$PATH
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/
-COPY packages/config/package.json ./packages/config/
-COPY packages/shared/package.json ./packages/shared/
+COPY packages/ai-bot/package.json ./packages/ai-bot/
 COPY packages/auth/package.json ./packages/auth/
+COPY packages/config/package.json ./packages/config/
 COPY packages/db/package.json ./packages/db/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
 RUN --mount=type=cache,id=pnpm,target=/usr/local/share/pnpm/store \
     pnpm install --frozen-lockfile
@@ -23,11 +25,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Next.js NEXT_PUBLIC_* env'leri BUILD TIME'da bake eder. Compose'tan ARG olarak gelir.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_WEB_URL
+ARG NEXT_PUBLIC_PANEL_URL=
 ARG NEXT_PUBLIC_CDN_URL
 ARG NEXT_PUBLIC_DEFAULT_LOCALE=tr
 ARG NEXT_PUBLIC_SUPPORTED_LOCALES=tr,en
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL
+ENV NEXT_PUBLIC_PANEL_URL=$NEXT_PUBLIC_PANEL_URL
 ENV NEXT_PUBLIC_CDN_URL=$NEXT_PUBLIC_CDN_URL
 ENV NEXT_PUBLIC_DEFAULT_LOCALE=$NEXT_PUBLIC_DEFAULT_LOCALE
 ENV NEXT_PUBLIC_SUPPORTED_LOCALES=$NEXT_PUBLIC_SUPPORTED_LOCALES

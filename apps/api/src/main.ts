@@ -77,8 +77,9 @@ async function bootstrap() {
   });
 
   logger.info('boot[5] register cors');
+  const allowedOrigins = [env.BETTER_AUTH_URL, ...env.CORS_EXTRA_ORIGINS];
   await app.register(cors as FastifyPluginCallback<FastifyCorsOptions>, {
-    origin: env.NODE_ENV === 'production' ? [env.BETTER_AUTH_URL] : true,
+    origin: env.NODE_ENV === 'production' ? allowedOrigins : true,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'Accept-Language'],
