@@ -8,7 +8,10 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {
-    typedRoutes: true,
+    // typedRoutes: variable-href component'lere `Route` type annotation lazım
+    // (StepCard, LinkCard, seller-nav items, admin-nav items, header-auth...) —
+    // ayrı refactor PR'da açılacak. Şimdilik path-string flexible.
+    typedRoutes: false,
     optimizePackageImports: ['@yorecebimde/ui', 'lucide-react'],
   },
   images: {
