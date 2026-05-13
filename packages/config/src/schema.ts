@@ -67,7 +67,7 @@ export const apiEnvSchema = baseEnvSchema.extend({
   EXPO_ACCESS_TOKEN: z.string().optional(),
 
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL: z.string().default('gemini-flash-lite-3.1'),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_ENVIRONMENT: z.string().default('development'),
