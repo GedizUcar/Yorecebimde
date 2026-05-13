@@ -7,6 +7,9 @@ const config: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
+  // ESLint ayrı CI workflow'unda (a11y.yml + eslint config). Build'de tekrar
+  // çalıştırmak yavaş + cosmetic kurallar (apostrophe escape) build'i bloklar.
+  eslint: { ignoreDuringBuilds: true },
   experimental: {
     // typedRoutes: variable-href component'lere `Route` type annotation lazım
     // (StepCard, LinkCard, seller-nav items, admin-nav items, header-auth...) —
