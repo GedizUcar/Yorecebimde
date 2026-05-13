@@ -1,31 +1,30 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PutObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import type { Readable } from 'node:stream';
 import type { Queue } from 'bullmq';
 import { newId, NotFoundError, BusinessRuleError, ForbiddenError } from '@yorecebimde/shared';
 import { env } from '@yorecebimde/config/api';
 import { S3_TOKEN, S3_BUCKETS, type S3Buckets } from '../../infrastructure/minio.module.js';
 import { IMAGE_QUEUE_TOKEN } from '../../infrastructure/queue.module.js';
 import { UploadsRepository } from './uploads.repository.js';
+import { buildMediaUrl } from '../media/media.url.js';
 import type { S3Client } from '@aws-sdk/client-s3';
 
 const ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'] as const;
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const PRESIGN_TTL_SEC = 60 * 10;
 
-export type PresignResult = {
-  uploadUrl: string;
+export type UploadResult = {
   imageId: string;
   storageKey: string;
-  expiresInSec: number;
-  maxFileSizeBytes: number;
+  status: 'processing';
 };
 
-export type PresignInput = {
+export type UploadInput = {
   sellerId: string;
   productId: string;
   contentType: string;
   fileName: string;
+  stream: Readable;
 };
 
 @Injectable()
@@ -38,11 +37,10 @@ export class UploadsService {
   ) {}
 
   /**
-   * Satıcı ürün için yeni görsel presigned URL alır. Çağrı sırasında
-   * product_images satırı `pending` olarak oluşturulur — client uploadı
-   * tamamladıktan sonra `/complete` ile job tetiklenir.
+   * Direct multipart upload — stream geliyor, MinIO'ya internal network
+   * üzerinden gönderiyoruz. Bittiğinde image-processing job'u kuyruğa düşer.
    */
-  async presignProductImage(input: PresignInput): Promise<PresignResult> {
+  async uploadProductImage(input: UploadInput): Promise<UploadResult> {
     if (!(ALLOWED_CONTENT_TYPES as readonly string[]).includes(input.contentType)) {
       throw new BusinessRuleError('Desteklenmeyen dosya türü', {
         contentType: input.contentType,
@@ -63,7 +61,7 @@ export class UploadsService {
     const imageId = newId();
     const ext = extFromContentType(input.contentType);
     const storageKey = `products/${input.productId}/${imageId}/original.${ext}`;
-    const publicUrl = `${env.MINIO_PUBLIC_URL}/${this.buckets.products}/${storageKey}`;
+    const publicUrl = buildMediaUrl(env.BETTER_AUTH_URL, this.buckets.products, storageKey);
 
     await this.repo.createImage({
       id: imageId,
@@ -72,46 +70,30 @@ export class UploadsService {
       storageKey,
       url: publicUrl,
       sortOrder: existingCount,
-      processingStatus: 'pending',
+      processingStatus: 'processing',
     });
 
-    const command = new PutObjectCommand({
-      Bucket: this.buckets.products,
-      Key: storageKey,
-      ContentType: input.contentType,
+    const upload = new Upload({
+      client: this.s3,
+      params: {
+        Bucket: this.buckets.products,
+        Key: storageKey,
+        Body: input.stream,
+        ContentType: input.contentType,
+      },
     });
-    const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: PRESIGN_TTL_SEC });
-
-    return {
-      uploadUrl,
-      imageId,
-      storageKey,
-      expiresInSec: PRESIGN_TTL_SEC,
-      maxFileSizeBytes: MAX_FILE_SIZE_BYTES,
-    };
-  }
-
-  /**
-   * Client upload'u bitirdiğinde çağrılır. Dosyanın MinIO'da varlığını
-   * doğrular ve image-processing job'unu kuyruğa alır.
-   */
-  async completeProductImage(sellerId: string, imageId: string): Promise<void> {
-    const image = await this.repo.findBySellerAndId(sellerId, imageId);
-    if (!image) throw new NotFoundError('Image', imageId);
-    if (image.processingStatus === 'ready') return;
-
     try {
-      await this.s3.send(
-        new HeadObjectCommand({ Bucket: this.buckets.products, Key: image.storageKey }),
-      );
-    } catch {
-      throw new BusinessRuleError('Dosya henüz yüklenmemiş veya hatalı yüklendi');
+      await upload.done();
+    } catch (err) {
+      await this.repo.delete(imageId).catch(() => undefined);
+      throw new BusinessRuleError('Dosya yüklenirken hata oluştu', {
+        cause: err instanceof Error ? err.message : String(err),
+      });
     }
 
-    await this.repo.updateProcessing(imageId, 'processing');
     await this.imageQueue.add(
       'process-image',
-      { imageId, productId: image.productId, sellerId: image.sellerId, storageKey: image.storageKey },
+      { imageId, productId: input.productId, sellerId: input.sellerId, storageKey },
       {
         jobId: `image:${imageId}`,
         attempts: 3,
@@ -120,6 +102,8 @@ export class UploadsService {
         removeOnFail: { count: 50 },
       },
     );
+
+    return { imageId, storageKey, status: 'processing' };
   }
 
   async deleteImage(sellerId: string, imageId: string): Promise<void> {
