@@ -1,70 +1,62 @@
-name: Build & Deploy
+name: Deploy to staging
+
+# Migrations are NOT auto-applied. When a new migration ships, SSH into the
+# VPS and run it manually (drizzle migrate script needs tsx — not in runtime
+# image). Track this as tech-debt: add a migrate service in compose.staging.yml.
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
+  workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: write
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    outputs:
-      sha: ${{ steps.sha.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: sha
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & push web
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/web/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/yorecebimde-web:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/yorecebimde-web:${{ steps.sha.outputs.sha }}
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
-
-      - name: Build & push api
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/api/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/yorecebimde-api:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/yorecebimde-api:${{ steps.sha.outputs.sha }}
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,mode=max,scope=api
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    environment: staging
+    timeout-minutes: 25
+
     steps:
-      - name: Trigger Coolify deploy
-        env:
-          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK_URL }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Add VPS to known_hosts
         run: |
-          if [ -z "$COOLIFY_WEBHOOK" ]; then
-            echo "COOLIFY_WEBHOOK_URL not set — skipping deploy trigger"
-            exit 0
-          fi
-          curl -fsSL -X GET \
-            -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            "$COOLIFY_WEBHOOK"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Pull, build, restart
+        env:
+          HOST: ${{ secrets.STAGING_HOST }}
+          USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+        run: |
+          ssh "$USER@$HOST" bash -lc "'
+            set -euo pipefail
+            cd \"$DEPLOY_PATH\"
+            echo \"[deploy] fetching origin/main\"
+            git fetch --prune origin
+            git reset --hard origin/main
+            echo \"[deploy] building + restarting api+web\"
+            cd infra/docker
+            docker compose -f compose.staging.yml --env-file ../../.env.staging up -d --build yorecebimde-api yorecebimde-web
+            echo \"[deploy] pruning dangling images\"
+            docker image prune -f
+          '"
+
+      - name: Smoke test
+        env:
+          BASE: https://yorecebimde-staging.gkteches.com
+        run: |
+          set -e
+          echo "[smoke] homepage"
+          curl -fsSL -o /dev/null -w "  %{http_code} %{size_download}b\n" "$BASE/"
+          echo "[smoke] api products"
+          curl -fsSL -o /dev/null -w "  %{http_code}\n" "$BASE/v1/products?limit=1"
+          echo "[smoke] swagger"
+          curl -fsSL -o /dev/null -w "  %{http_code}\n" "$BASE/v1/docs"
