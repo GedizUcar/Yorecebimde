@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /hesabim/
+Disallow: /api/
+Disallow: /_next/
+
+Sitemap: https://yorecebimde-staging.gkteches.com/sitemap.xml
